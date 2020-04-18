@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, request
+import pandas as pd
 from pulp import *
 
 app = Flask(__name__)
@@ -61,10 +62,64 @@ def problema_1():
 				'Sabado': int(x[5].varValue),
 				'Domingo': int(x[6].varValue)
 	}
-	
+
 
 	# return str(x[0].varValue)
 	return jsonify(respuesta_json)
+
+
+@app.route('/capacitated_plan', methods=["GET","POST"])
+def solve_capacitated_plant():
+
+	demand = pd.DataFrame({'Dmd':[2719.6, 84.1, 1676.8, 145.4, 156.4]},
+                      		index=["USA","Germany","Japan","Brazil","India"])
+
+	var_cost = pd.DataFrame({'USA':[6,13,20,12,22],
+							 'Germany':[13,6,14,14,13],
+							 'Japan':[20,14,3,21,10],
+							 'Brazil':[12,14,21,8,23],
+							 'India':[17,13,9,21,8]},
+							 index=["USA","Germany","Japan","Brazil","India"])
+
+	fix_cost = pd.DataFrame({'Low_Cap':[6500,4980,6230,3230,2110],
+							 'High_Cap':[9500,7270,9100,4730,3080]},
+							 index=["USA","Germany","Japan","Brazil","India"])
+
+	cap = pd.DataFrame({'Low_Cap':[500,500,500,500,500],
+					    'High_Cap':[1500,1500,1500,1500,1500]},
+					    index=["USA","Germany","Japan","Brazil","India"])
+
+	# Initialize Class
+	model = LpProblem("Capacitated Plant Location Model", LpMinimize)
+
+	# Define Decision Variables
+	loc = ['USA', 'Germany', 'Japan', 'Brazil', 'India']
+	size = ['Low_Cap','High_Cap']
+
+	x = LpVariable.dicts("production_", [(i,j) for i in loc for j in loc],
+	                     lowBound=0, upBound=None, cat='Continuous')
+	y = LpVariable.dicts("plant_",
+	                     [(i,s) for s in size for i in loc], cat='Binary')
+
+	# Define objective function
+	model += (lpSum([fix_cost.loc[i,s] * y[(i,s)]
+	                 for s in size for i in loc])
+	          + lpSum([var_cost.loc[i,j] * x[(i,j)]
+	                   for i in loc for j in loc]))
+
+	model.solve()
+	# El resultado es 0 por que no se puso la demanda!!!!!!!!!!!
+
+	for v in model.variables():
+		print(v.name, "=", v.varValue)
+
+	return str(model)
+
+
+
+
+
+
 
 if __name__ == '__main__':
 	app.run(debug=True)
