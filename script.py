@@ -74,19 +74,13 @@ def solve_capacitated_plant():
 	demand = pd.DataFrame({'Dmd':[2719.6, 84.1, 1676.8, 145.4, 156.4]},
                       		index=["USA","Germany","Japan","Brazil","India"])
 
-	var_cost = pd.DataFrame({'USA':[6,13,20,12,22],
-							 'Germany':[13,6,14,14,13],
-							 'Japan':[20,14,3,21,10],
-							 'Brazil':[12,14,21,8,23],
-							 'India':[17,13,9,21,8]},
+	var_cost = pd.DataFrame({'USA':[6,13,20,12,22], 'Germany':[13,6,14,14,13], 'Japan':[20,14,3,21,10], 'Brazil':[12,14,21,8,23], 'India':[17,13,9,21,8]},
 							 index=["USA","Germany","Japan","Brazil","India"])
 
-	fix_cost = pd.DataFrame({'Low_Cap':[6500,4980,6230,3230,2110],
-							 'High_Cap':[9500,7270,9100,4730,3080]},
+	fix_cost = pd.DataFrame({'Low_Cap':[6500,4980,6230,3230,2110], 'High_Cap':[9500,7270,9100,4730,3080]},
 							 index=["USA","Germany","Japan","Brazil","India"])
 
-	cap = pd.DataFrame({'Low_Cap':[500,500,500,500,500],
-					    'High_Cap':[1500,1500,1500,1500,1500]},
+	cap = pd.DataFrame({'Low_Cap':[500,500,500,500,500], 'High_Cap':[1500,1500,1500,1500,1500]},
 					    index=["USA","Germany","Japan","Brazil","India"])
 
 	# Initialize Class
@@ -96,16 +90,11 @@ def solve_capacitated_plant():
 	loc = ['USA', 'Germany', 'Japan', 'Brazil', 'India']
 	size = ['Low_Cap','High_Cap']
 
-	x = LpVariable.dicts("production_", [(i,j) for i in loc for j in loc],
-	                     lowBound=0, upBound=None, cat='Continuous')
-	y = LpVariable.dicts("plant_",
-	                     [(i,s) for s in size for i in loc], cat='Binary')
+	x = LpVariable.dicts("production_", [(i,j) for i in loc for j in loc], lowBound=0, upBound=None, cat='Continuous')
+	y = LpVariable.dicts("plant_", [(i,s) for s in size for i in loc], cat='Binary')
 
 	# Define objective function
-	model += (lpSum([fix_cost.loc[i,s] * y[(i,s)]
-	                 for s in size for i in loc])
-	          + lpSum([var_cost.loc[i,j] * x[(i,j)]
-	                   for i in loc for j in loc]))
+	model += (lpSum([fix_cost.loc[i,s] * y[(i,s)] for s in size for i in loc]) + lpSum([var_cost.loc[i,j] * x[(i,j)] for i in loc for j in loc]))
 
 	model.solve()
 	# El resultado es 0 por que no se puso la demanda!!!!!!!!!!!
@@ -113,10 +102,54 @@ def solve_capacitated_plant():
 	for v in model.variables():
 		print(v.name, "=", v.varValue)
 
-	return str(model)
+	return str("Ejecutado con éxito!")
 
+@app.route('/logical_constraint', methods=["GET","POST"])
+def solve_logical_constraint():
+	'''
+	Un cliente ha pedido que se le entreguen seis productos durante el próximo mes.
+	Se deberán enviar varias cargas de camiones para entregar todos los productos.
+	Hay un límite de peso en los camiones de 25,000 lbs.
+	Por razones de flujo de efectivo, se desea enviar la combinación más rentable de
+	productos que puedan caber en el primer camión.
+	'''
+	#Definimos 2 diccionarios. El peso de cada producto y su rentabilidad
+	peso = {'A': 12583, 'B': 9204, 'C': 12611, 'D': 12131, 'E': 12889, 'F': 11529}
+	rentabilidad = {'A': 102564, 'B': 130043, 'C': 127648, 'D': 155058, 'E': 238846, 'F': 197030}
+	#Definimos la lista de productos
+	prod = ['A', 'B', 'C', 'D', 'E', 'F']
 
+	#Iniciar el modelo, variables de decisión  y funcion objetivo
+	model = LpProblem("Loading Truck Problem", LpMaximize)
+	x = LpVariable.dicts('Enviar', prod, cat='Binary') #Una variable por cada producto
+	model += lpSum([rentabilidad[i] * x[i] for i in prod]) #Funcion Objetivo, maximizar Rentabilidad x Unidades
 
+	#Definir restricciones
+	#Agregar una restricción para asegurar que el peso total del camión sea menor o igual a 25,000 lbs.
+	model += lpSum([peso[i] * x[i] for i in prod]) <= 25000
+	#Agreguar una restricción para que el modelo, como máximo, seleccione solo uno de los productos entre D, E y F.
+	model += x['D'] + x['E'] + x['F'] <= 1
+
+	#Resolver el modelo
+	model.solve()
+
+	#Imprimir los resultados en la consola
+	for i in model.variables():
+	    print(i.name, "=", i.varValue)
+
+	#Preparar JSON
+	respuesta_json = {
+				'Estado': "Modelo resuelto con éxito!",
+				'Enviar_A': int(model.variables()[0].varValue),
+				'Enviar_B': int(model.variables()[1].varValue),
+				'Enviar_C': int(model.variables()[2].varValue),
+				'Enviar_D': int(model.variables()[3].varValue),
+				'Enviar_E': int(model.variables()[4].varValue),
+				'Enviar_F': int(model.variables()[5].varValue),
+				'Status Code': 200
+	}
+
+	return jsonify(respuesta_json)
 
 
 
