@@ -1,6 +1,7 @@
 # This file may be used to create an environment using:
 # $ conda create --name <env> --file <this file>
 # platform: win-64
+altgraph=0.17=pypi_0
 attrs=19.3.0=pypi_0
 backcall=0.1.0=pypi_0
 bleach=3.1.4=pypi_0
@@ -12,6 +13,7 @@ decorator=4.4.2=pypi_0
 defusedxml=0.6.0=pypi_0
 entrypoints=0.3=pypi_0
 flask=1.1.2=pypi_0
+future=0.18.2=pypi_0
 importlib-metadata=1.6.0=pypi_0
 ipykernel=5.2.1=pypi_0
 ipython=7.13.0=pypi_0
@@ -35,18 +37,21 @@ openssl=1.1.1f=he774522_0
 pandas=1.0.3=pypi_0
 pandocfilters=1.4.2=pypi_0
 parso=0.7.0=pypi_0
+pefile=2019.4.18=pypi_0
 pickleshare=0.7.5=pypi_0
 pip=20.0.2=py37_1
 prometheus-client=0.7.1=pypi_0
 prompt-toolkit=3.0.5=pypi_0
 pulp=2.1=pypi_0
 pygments=2.6.1=pypi_0
+pyinstaller=4.0.dev0+03d42a2a25=pypi_0
 pyparsing=2.4.7=pypi_0
 pyrsistent=0.16.0=pypi_0
 python=3.7.7=h60c2a47_2
 python-dateutil=2.8.1=pypi_0
 pytz=2019.3=pypi_0
 pywin32=227=pypi_0
+pywin32-ctypes=0.2.0=pypi_0
 pywinpty=0.5.7=pypi_0
 pyzmq=19.0.0=pypi_0
 qtconsole=4.7.3=pypi_0

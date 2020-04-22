@@ -1,0 +1,11 @@
+{
+  "base_url": "/",
+  "hostname": "localhost",
+  "notebook_dir": "C:\\Users\\Gabriel Pierobon\\01_Python Trabajos Gabriel\\covid_predict_spain",
+  "password": false,
+  "pid": 16716,
+  "port": 8888,
+  "secure": false,
+  "token": "04b8a9cfbb798eeb96574340ede3e9015a679861c4899f56",
+  "url": "http://localhost:8888/"
+}

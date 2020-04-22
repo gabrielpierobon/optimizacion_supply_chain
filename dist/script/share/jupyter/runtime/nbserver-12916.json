@@ -1,0 +1,11 @@
+{
+  "base_url": "/",
+  "hostname": "localhost",
+  "notebook_dir": "C:\\WINDOWS\\system32",
+  "password": false,
+  "pid": 12916,
+  "port": 8888,
+  "secure": false,
+  "token": "b12cf4b34a56531fe3780c63825261060de426494bc7f351",
+  "url": "http://localhost:8888/"
+}
