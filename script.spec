@@ -4,10 +4,10 @@ block_cipher = None
 
 
 a = Analysis(['script.py'],
-             pathex=['C:\\Users\\Gabriel Pierobon\\01_Python Trabajos Gabriel\\optimizacion_supply_chain'],
+             pathex=['C:\\Users\\gpierobon\\01_Python_Gabriel_KPMG\\optimizacion_supply_chain'],
              binaries=[],
              datas=[],
-             hiddenimports=['encodings'],
+             hiddenimports=[],
              hookspath=[],
              runtime_hooks=[],
              excludes=[],

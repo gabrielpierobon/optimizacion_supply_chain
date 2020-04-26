@@ -27,19 +27,21 @@ def problema_1():
 	# Define Objective
 	model += lpSum([x[i] for i in x])
 
-	# En postman, enviar este json:
-	# {
-	# "0":7,
-	# "1":7,
-	# "2":7,
-	# "3":6,
-	# "4":5,
-	# "5":6,
-	# "6":6,
-	# "7":7,
-	# "8":7,
-	# "9":6
-	# }
+	# JSON de Ejemplo para enviar por POSTMAN
+	'''
+	{
+	"0":7,
+	"1":7,
+	"2":7,
+	"3":6,
+	"4":5,
+	"5":6,
+	"6":6,
+	"7":7,
+	"8":7,
+	"9":6
+	}
+	'''
 
 	#Recibir el JSON de postman
 	demanda = request.get_json()
@@ -80,18 +82,44 @@ def problema_1():
 # API 2: Plan de capacidades
 @app.route('/capacitated_plan', methods=["GET","POST"])
 def solve_capacitated_plant():
+	'''
+	You are given four Pandas data frames demand, var_cost, fix_cost, and cap containing the regional demand (thous. of cars), variable production costs (thous. $US), 
+	fixed production costs (thous. $US), and production capacity (thous. of cars).
+	'''
 
-	demand = pd.DataFrame({'Dmd':[2719.6, 84.1, 1676.8, 145.4, 156.4]},
-                      		index=["USA","Germany","Japan","Brazil","India"])
+	# JSON de Ejemplo para enviar por POSTMAN
+	'''
+	{
+	    "Country": ["USA","Germany","Japan","Brazil","India"],
+	    "Dmd":[2719.6, 84.1, 1676.8, 145.4, 156.4],
+	    "Var_Cost": {
+	        "USA":[6,13,20,12,22], 
+	        "Germany":[13,6,14,14,13], 
+	        "Japan":[20,14,3,21,10], 
+	        "Brazil":[12,14,21,8,23], 
+	        "India":[17,13,9,21,8]
+	    },
+	    "Fix_Cost":{
+	        "Low_Cap":[6500,4980,6230,3230,2110], 
+	        "High_Cap":[9500,7270,9100,4730,3080]
+	    },
+	    "Cap": {
+	        "Low_Cap":[500,500,500,500,500], 
+	        "High_Cap":[1500,1500,1500,1500,1500]
+	    }
+	}
+	'''
 
-	var_cost = pd.DataFrame({'USA':[6,13,20,12,22], 'Germany':[13,6,14,14,13], 'Japan':[20,14,3,21,10], 'Brazil':[12,14,21,8,23], 'India':[17,13,9,21,8]},
-							 index=["USA","Germany","Japan","Brazil","India"])
+	#Recibir el JSON de postman
+	data_json = request.get_json()
 
-	fix_cost = pd.DataFrame({'Low_Cap':[6500,4980,6230,3230,2110], 'High_Cap':[9500,7270,9100,4730,3080]},
-							 index=["USA","Germany","Japan","Brazil","India"])
+	demand = pd.DataFrame(data_json['Dmd'], index=data_json['Country'], columns=["Dmd"])
 
-	cap = pd.DataFrame({'Low_Cap':[500,500,500,500,500], 'High_Cap':[1500,1500,1500,1500,1500]},
-					    index=["USA","Germany","Japan","Brazil","India"])
+	var_cost = pd.DataFrame(data_json['Var_Cost'], index=data_json['Country'])
+
+	fix_cost = pd.DataFrame(data_json['Fix_Cost'], index=data_json['Country'])
+
+	cap = pd.DataFrame(data_json['Cap'], index=data_json['Country'])
 
 	# Initialize Class
 	model = LpProblem("Capacitated Plant Location Model", LpMinimize)
@@ -106,13 +134,78 @@ def solve_capacitated_plant():
 	# Define objective function
 	model += (lpSum([fix_cost.loc[i,s] * y[(i,s)] for s in size for i in loc]) + lpSum([var_cost.loc[i,j] * x[(i,j)] for i in loc for j in loc]))
 
-	model.solve(solver)
-	# El resultado es 0 por que no se puso la demanda!!!!!!!!!!!
+	# Define the constraints
+	# Define the constraint that sets total production shipped to a particular region equal to the total demand of that region.
+	for j in loc:
+		model += lpSum([x[(i, j)] for i in loc]) == demand.loc[j,'Dmd']
+    # Define constraint that sets total production of a particular region is less than or equal to the total production capacity of that region.
+	for i in loc:
+		model += lpSum([x[(i, j)] for j in loc]) <= lpSum([cap.loc[i,s] * y[(i,s)] for s in size])
+	# Define logical constraint so that if the high capacity plant in USA is open, then a low capacity plant in Germany is also opened.
+	model += y[('USA','High_Cap')] - y[('Germany','Low_Cap')] <= 0
 
+	# Resolver el modelo
+	model.solve(solver)
+
+	# Imprimir valores óptimos de las variables en la consola
 	for v in model.variables():
 		print(v.name, "=", v.varValue)
 
-	return str("Ejecutado con éxito!")
+	# Imprimir el tipo de solución en la consola
+	print("Status:", LpStatus[model.status])
+
+	# Imprimir el resultado de la función objetivo en la consola
+	print("Objective =", value(model.objective))
+
+	#Preparar JSON
+	respuesta_json = {
+				'Status Code': 200,
+				'Estado': "Modelo procesado",
+				'Solucion': LpStatus[model.status],
+				'Función objetivo (minimizar costes)': str(model.objective),
+				'Resultado de la función objetivo (Coste minimo)': value(model.objective),
+				'Localización de Plantas': {
+					"plant__('Brazil',_'High_Cap')" : int(model.variables()[0].varValue),
+					"plant__('Brazil',_'Low_Cap')" : int(model.variables()[1].varValue),
+					"plant__('Germany',_'High_Cap')" : int(model.variables()[2].varValue),
+					"plant__('Germany',_'Low_Cap')" : int(model.variables()[3].varValue),
+					"plant__('India',_'High_Cap')" : int(model.variables()[4].varValue),
+					"plant__('India',_'Low_Cap')" : int(model.variables()[5].varValue),
+					"plant__('Japan',_'High_Cap')" : int(model.variables()[6].varValue),
+					"plant__('Japan',_'Low_Cap')" : int(model.variables()[7].varValue),
+					"plant__('USA',_'High_Cap')" : int(model.variables()[8].varValue),
+					"plant__('USA',_'Low_Cap')" : int(model.variables()[9].varValue)
+					},
+				'Envío de producción (Origen, Destino)': {
+					"production__('Brazil',_'Brazil')": int(model.variables()[10].varValue),
+					"production__('Brazil',_'Germany')" : int(model.variables()[11].varValue),
+					"production__('Brazil',_'India')" : int(model.variables()[12].varValue),
+					"production__('Brazil',_'Japan')" : int(model.variables()[13].varValue),
+					"production__('Brazil',_'USA')" : int(model.variables()[14].varValue),
+					"production__('Germany',_'Brazil')" : int(model.variables()[15].varValue),
+					"production__('Germany',_'Germany')" : int(model.variables()[16].varValue),
+					"production__('Germany',_'India')" : int(model.variables()[17].varValue),
+					"production__('Germany',_'Japan')" : int(model.variables()[18].varValue),
+					"production__('Germany',_'USA')" : int(model.variables()[19].varValue),
+					"production__('India',_'Brazil')" : int(model.variables()[20].varValue),
+					"production__('India',_'Germany')" : int(model.variables()[21].varValue),
+					"production__('India',_'India')" : int(model.variables()[22].varValue),
+					"production__('India',_'Japan')" : int(model.variables()[23].varValue),
+					"production__('India',_'USA')" : int(model.variables()[24].varValue),
+					"production__('Japan',_'Brazil')" : int(model.variables()[25].varValue),
+					"production__('Japan',_'Germany')" : int(model.variables()[26].varValue),
+					"production__('Japan',_'India')" : int(model.variables()[27].varValue),
+					"production__('Japan',_'Japan')" : int(model.variables()[28].varValue),
+					"production__('Japan',_'USA')" : int(model.variables()[29].varValue),
+					"production__('USA',_'Brazil')" : int(model.variables()[30].varValue),
+					"production__('USA',_'Germany')" : int(model.variables()[31].varValue),
+					"production__('USA',_'India')" : int(model.variables()[32].varValue),
+					"production__('USA',_'Japan')" : int(model.variables()[33].varValue),
+					"production__('USA',_'USA')" : int(model.variables()[34].varValue)
+					}
+	}
+
+	return jsonify(respuesta_json)
 
 
 # API 3: Logística de camiones
